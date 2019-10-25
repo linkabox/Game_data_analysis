@@ -9,6 +9,7 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 import time
+import os
 #r.encoding = r.apparent_encoding
 
 
@@ -25,6 +26,34 @@ def GetHtmlText(url):
 # print a.encode('gb18030')
 
 
+def timestamp_datetime(value):
+    format = '%Y-%m-%d %H:%M:%S'
+    # value为传入的值为时间戳(整形)，如：1332888820
+    value = time.localtime(value)
+    # 经过localtime转换后变成
+    ## time.struct_time(tm_year=2012, tm_mon=3, tm_mday=28, tm_hour=6, tm_min=53, tm_sec=40, tm_wday=2, tm_yday=88, tm_isdst=0)
+    # 最后再经过strftime函数转换为正常日期格式。
+    dt = time.strftime(format, value)
+    return dt
+
+
+def datetime_timestamp(dt):
+    # dt为字符串
+    # 中间过程，一般都需要将字符串转化为时间数组
+    time.strptime(dt, '%Y-%m-%d %H:%M:%S')
+    ## time.struct_time(tm_year=2012, tm_mon=3, tm_mday=28, tm_hour=6, tm_min=53, tm_sec=40, tm_wday=2, tm_yday=88, tm_isdst=-1)
+    # 将"2012-03-28 06:53:40"转化为时间戳
+    s = time.mktime(time.strptime(dt, '%Y-%m-%d %H:%M:%S'))
+    return int(s)
+
+
+def to_num(s):
+    try:
+        return int(s)
+    except ValueError:
+        return s
+
+
 def parsepage(html):
     soup = BeautifulSoup(html, 'html.parser')
     for i in range(len(soup.find_all('li', class_='taptap-review-item collapse in'))):
@@ -36,7 +65,11 @@ def parsepage(html):
         child_spans = a.find('a', 'text-header-time')('span')
         for j in range(len(child_spans)):
             if child_spans[j].has_attr('data-dynamic-time'):
-                comment_time = child_spans[j]['data-dynamic-time']
+                field = to_num(child_spans[j]['data-dynamic-time'])
+                if isinstance(field, str):
+                    comment_time = field
+                else:
+                    comment_time = timestamp_datetime(field)
         score = int(a.find('div', 'item-text-score').find('i')
                     ['style'][-4:-2])/14
         if a.find('div', 'item-text-score').find('span') is not None:
@@ -77,18 +110,23 @@ def parsepage(html):
         all_data.append(list)
 
 
+if not os.path.exists('output'):
+    os.makedirs('output')
+
 all_data = []
 maxPage = 5
 appId = 177088
 for i in range(0, maxPage):
     i = i+1
-    url = 'https://www.taptap.com/app/{0}/review?order=default&page={1}#review-list'.format(appId, i)
+    url = 'https://www.taptap.com/app/{0}/review?order=default&page={1}#review-list'.format(
+        appId, i)
     html = GetHtmlText(url)
     parsepage(html)
     print("finish:"+url)
     # time.sleep(5)
 data = pd.DataFrame(all_data, columns=['user_name', 'user_id', 'sex', 'comment_time',
-                                       'play_time', 'score', 'comment', 'phone', 'happy', 'like', 'unlike','link'])
-data.to_csv('./taptap_{0}.csv'.format(appId), encoding='gb18030', index=False)
+                                       'play_time', 'score', 'comment', 'phone', 'happy', 'like', 'unlike', 'link'])
+data.to_csv('./output/taptap_{0}.csv'.format(appId),
+            encoding='utf-8', index=False)
 # data.to_json('./taptap_{0}.json'.format(appId))
 print("all done")
