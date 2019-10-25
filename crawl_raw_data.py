@@ -55,6 +55,7 @@ def to_num(s):
 
 
 def parsepage(html):
+    list = []
     soup = BeautifulSoup(html, 'html.parser')
     for i in range(len(soup.find_all('li', class_='taptap-review-item collapse in'))):
         a = soup.find_all('li', class_='taptap-review-item collapse in')[i]
@@ -94,39 +95,42 @@ def parsepage(html):
             'ul', class_='list-unstyled text-footer-btns').find_all('span')[2].string
         unlike = a.find(
             'ul', class_='list-unstyled text-footer-btns').find_all('span')[3].string
-        list = []
-        list.append(user_name)
-        list.append(user_id)
-        list.append(sex)
-        list.append(comment_time)
-        list.append(play_time)
-        list.append(score)
-        list.append(comment)
-        list.append(phone)
-        list.append(happy)
-        list.append(like)
-        list.append(unlike)
-        list.append(web)
-        all_data.append(list)
+        user_data = []
+        user_data.append(user_name)
+        user_data.append(user_id)
+        user_data.append(sex)
+        user_data.append(comment_time)
+        user_data.append(play_time)
+        user_data.append(score)
+        user_data.append(comment)
+        user_data.append(phone)
+        user_data.append(happy)
+        user_data.append(like)
+        user_data.append(unlike)
+        user_data.append(web)
+        all_data.append(user_data)
 
+def crawl_taptap(appId,maxPage):
+    for i in range(0, maxPage):
+        i = i+1
+        url = 'https://www.taptap.com/app/{0}/review?order=default&page={1}#review-list'.format(appId, i)
+        html = GetHtmlText(url)
+        parsepage(html)
+        print("finish:"+url)
+        # time.sleep(5)
 
+### Main
 if not os.path.exists('output'):
     os.makedirs('output')
 
-all_data = []
-maxPage = 5
-appId = 177088
-for i in range(0, maxPage):
-    i = i+1
-    url = 'https://www.taptap.com/app/{0}/review?order=default&page={1}#review-list'.format(
-        appId, i)
-    html = GetHtmlText(url)
-    parsepage(html)
-    print("finish:"+url)
-    # time.sleep(5)
+all_data =[]
+crawl_taptap(177088,5)
+crawl_taptap(176951,2)
+
+realId = 177088
 data = pd.DataFrame(all_data, columns=['user_name', 'user_id', 'sex', 'comment_time',
-                                       'play_time', 'score', 'comment', 'phone', 'happy', 'like', 'unlike', 'link'])
-data.to_csv('./output/taptap_{0}.csv'.format(appId),
-            encoding='utf-8', index=False)
-# data.to_json('./taptap_{0}.json'.format(appId))
+                                        'play_time', 'score', 'comment', 'phone', 'happy', 'like', 'unlike', 'link'])
+data.to_csv('./output/taptap_{0}.csv'.format(realId),encoding='utf-8', index=False)
+data.to_csv('./output/taptap_{0}_xlsx.csv'.format(realId),encoding='gb18030', index=False)
+# data.to_json('./taptap_{0}.json'.format(realId))
 print("all done")

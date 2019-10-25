@@ -1,7 +1,9 @@
 import jieba
 import csv
-from wordcloud import WordCloud
+from wordcloud import WordCloud, STOPWORDS, ImageColorGenerator
 import matplotlib.pyplot as plt
+import numpy as np
+from PIL import Image
 
 # 按行读取文件，返回文件的行字符串列表
 
@@ -47,20 +49,27 @@ for line in all_comments:
 save_file("./output/cut_words.txt", "\n".join(cut_words))
 
 # # 设置词云
-wc_text = "\n".join(cut_words)
+wc_text = " ".join(cut_words)
+bg_mask = np.array(Image.open("loading_bg.png"))
+
 wc = WordCloud(background_color="white",  # 设置背景颜色
-               # mask = "图片",  #设置背景图片
+               mask = bg_mask,  #设置背景图片
                width=1024,
                height=768,
-               max_words=1000,  # 设置最大显示的字数
-               stopwords = stop_words, #设置停用词
+               max_words=2000,  # 设置最大显示的字数
+            #    stopwords = stop_words, #设置停用词
                font_path="NotoSerifCJKsc-Black.otf",
                # 设置中文字体，使得词云可以显示（词云默认字体是“DroidSansMono.ttf字体库”，不支持中文）
-               max_font_size=80,  # 设置字体最大值
-               random_state=32,  # 设置有多少种随机生成状态，即有多少种配色方案
+               max_font_size=100,  # 设置字体最大值
+               random_state=64,  # 设置有多少种随机生成状态，即有多少种配色方案
                )
 wc_img = wc.generate(wc_text)  # 生成词云
+
+image_colors = ImageColorGenerator(bg_mask)
+wc.recolor(color_func=image_colors)
+
 wc_img.to_file('./output/wc_{0}.png'.format(appId))
+
 plt.imshow(wc_img, interpolation='bilinear')
 plt.axis("off")
 plt.show()
